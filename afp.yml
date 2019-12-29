@@ -1,0 +1,17 @@
+---
+version: "2"
+services:
+  afp:
+    image: cptactionhank/netatalk
+    container_name: afp
+    cap_add:
+      - NET_BIND_SERVICE
+    environment:
+      - AFP_UID=1000
+      - AFP_GID=1000
+    volumes:
+      - /zmedia/afp:/media/share
+      - /zmedia/afp/TimeMachine:/media/timemachine
+    ports:
+      - 548:548
+    restart: always

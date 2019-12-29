@@ -1,0 +1,32 @@
+---
+version: "2"
+services:
+  powerdns:
+    image: uip9av6y/powerdns:sqlite3
+    container_name: powerdns
+    volumes:
+      - /zmedia/powerdns:/data
+    environment:
+      - DB_HOST=/data/powerdns.sqlite3
+      - SQLITE3_FOREIGN_KEYS=yes
+    ports:
+      - "53:53/udp"
+    cap_add:
+      - NET_BIND_SERVICE
+    restart: always
+
+  powerdns-admin:
+    image: ngoduykhanh/powerdns-admin
+    container_name: powerdns-admin
+    depends_on:
+      - powerdns
+    volumes:
+      - /zmedia/powerdns:/data
+    environment:
+      - SQLALCHEMY_DATABASE_URI=sqlite:////data/powerdns.sqlite3
+      - GUINCORN_TIMEOUT=60
+      - GUNICORN_WORKERS=2
+      - GUNICORN_LOGLEVEL=DEBUG
+    ports:
+      - 9191:80
+    restart: always

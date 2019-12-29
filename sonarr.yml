@@ -1,0 +1,80 @@
+---
+version: "2"
+services:
+  vpn:
+    image: ekristen/openvpn-client
+    container_name: vpn
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    volumes:
+      - /zmedia/vpn:/vpn  # VPN client config directory
+    command: --config /vpn/client.conf --auth-nocache
+    restart: always
+
+  sabnzbd:
+    image: linuxserver/sabnzbd
+    container_name: sabnzbd
+    depends_on:
+      - vpn
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - /zmedia/sabnzbd-config:/config             # sabnzbd's database and config
+      - /zmedia/downloads:/downloads               # download directory
+      - /zmedia/downloads/incomplete:/incomplete   # incomplete downloads
+    network_mode: "service:vpn"                    # use the networking from the VPN container
+    restart: always
+
+  sabnzbd-proxy:
+    image: dperson/nginx
+    container_name: sabnzbd-proxy
+    depends_on:
+      - sabnzbd
+    ports:
+      - 8888:80
+    links:
+      - "vpn:sabnzbd"
+    command: -w "http://sabnzbd:8080/sabnzbd;/sabnzbd"
+    restart: always
+
+  sonarr:
+    image: linuxserver/sonarr
+    container_name: sonarr
+    depends_on:
+      - sabnzbd
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Chicago
+    volumes:
+      - /zmedia/sonarr-config:/config                            # sonarr config and database
+      - /zmedia/plex/nzb/tv:/tv      # plex TV library
+      - /zmedia/downloads:/downloads                             # sabnzbd's downloads directory
+    ports:
+      - 8989:8989
+    links:
+      - "vpn:sabnzbd"          # use the hostname "sabnzbd" in your downloader config
+    restart: always
+
+  radarr:
+    image: linuxserver/radarr
+    container_name: radarr
+    depends_on:
+      - sabnzbd
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=America/Central
+    volumes:
+      - /zmedia/radarr-config:/config                                   # radarr config and database
+      - /zmedia/plex/nzb/movies:/movies     # plex movies library
+      - /zmedia/downloads:/downloads                                    # sabnzbd's downloads directory
+    ports:
+      - 7878:7878
+    links:
+      - "vpn:sabnzbd"          # use the hostname "sabnzbd" in your downloader config
+    restart: always
