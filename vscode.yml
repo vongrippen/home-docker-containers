@@ -1,0 +1,11 @@
+---
+version: "2"
+services:
+  codeserver:
+    image: codercom/code-server
+    environment:
+      - PUID=1000
+      - PGID=1000
+    ports:
+      - 8042:8080
+    restart: always
